@@ -63,7 +63,7 @@ const Upload = () => {
         navigate(`/resume/${uuid}`);
     }
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const form = e.currentTarget.closest('form');
         if(!form) return;
@@ -75,7 +75,7 @@ const Upload = () => {
 
         if(!file) return;
 
-        handleAnalyze({ companyName, jobTitle, jobDescription, file });
+        await handleAnalyze({ companyName, jobTitle, jobDescription, file });
     }
 
     return (
@@ -88,7 +88,8 @@ const Upload = () => {
                     {isProcessing ? (
                         <>
                             <h2>{statusText}</h2>
-                            <img src="/images/resume-scan.gif" className="w-full" />
+                            <img src="/images/resume-scan.gif" className="w-full" alt="Resume scanning animation" />
+
                         </>
                     ) : (
                         <h2>Drop your resume for an ATS score and improvement tips</h2>
