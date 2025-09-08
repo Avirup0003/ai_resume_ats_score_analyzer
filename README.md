@@ -44,6 +44,29 @@ npm run build
 
 ## Deployment
 
+### Vercel Deployment
+
+This project is configured for deployment on Vercel. To deploy:
+
+1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
+2. Import your repository on Vercel: https://vercel.com/new
+3. Vercel will automatically detect the project configuration and deploy it
+
+Alternatively, you can use the Vercel CLI:
+
+```bash
+# Install Vercel CLI if you haven't already
+npm install -g vercel
+
+# Login to Vercel
+vercel login
+
+# Deploy from the project directory
+vercel
+```
+
+The application is configured as a Single Page Application (SPA) with client-side routing, and the `vercel.json` file handles the routing configuration.
+
 ### Docker Deployment
 
 To build and run using Docker:
@@ -75,7 +98,6 @@ Make sure to deploy the output of `npm run build`
 ├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
 ├── build/
 │   ├── client/    # Static assets
-│   └── server/    # Server-side code
 ```
 
 ## Styling
