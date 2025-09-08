@@ -132,7 +132,20 @@ export async function convertPdfToImage(
         log("PDF.js library loaded successfully");
 
         log("Reading file data...");
-        const arrayBuffer = await file.arrayBuffer();
+
+        // Create a promise that rejects after a timeout
+        const arrayBufferTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("File reading timed out after 30 seconds"));
+            }, 30000); // 30 seconds timeout
+        });
+
+        // Race the file reading against the timeout
+        const arrayBuffer = await Promise.race([
+            file.arrayBuffer(),
+            arrayBufferTimeoutPromise
+        ]) as ArrayBuffer;
+
         log("File data read successfully, size:", arrayBuffer.byteLength);
 
         log("Loading PDF document...");

@@ -298,7 +298,19 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             setError("Puter.js not available");
             return;
         }
-        return puter.fs.upload(files);
+
+        // Create a promise that rejects after a timeout
+        const uploadTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("File upload timed out after 60 seconds"));
+            }, 60000); // 60 seconds timeout
+        });
+
+        // Race the upload against the timeout
+        return Promise.race([
+            puter.fs.upload(files),
+            uploadTimeoutPromise
+        ]) as Promise<FSItem | undefined>;
     };
 
     const deleteFile = async (path: string) => {
@@ -334,24 +346,35 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             return;
         }
 
-        return puter.ai.chat(
-            [
-                {
-                    role: "user",
-                    content: [
-                        {
-                            type: "file",
-                            puter_path: path,
-                        },
-                        {
-                            type: "text",
-                            text: message,
-                        },
-                    ],
-                },
-            ],
-            { model: "claude-3-7-sonnet" }
-        ) as Promise<AIResponse | undefined>;
+        // Create a promise that rejects after a timeout
+        const feedbackTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("AI feedback operation timed out after 120 seconds"));
+            }, 120000); // 120 seconds timeout (2 minutes)
+        });
+
+        // Race the AI feedback operation against the timeout
+        return Promise.race([
+            puter.ai.chat(
+                [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "file",
+                                puter_path: path,
+                            },
+                            {
+                                type: "text",
+                                text: message,
+                            },
+                        ],
+                    },
+                ],
+                { model: "claude-3-7-sonnet" }
+            ),
+            feedbackTimeoutPromise
+        ]) as Promise<AIResponse | undefined>;
     };
 
     const img2txt = async (image: string | File | Blob, testMode?: boolean) => {
@@ -369,7 +392,19 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             setError("Puter.js not available");
             return;
         }
-        return puter.kv.get(key);
+
+        // Create a promise that rejects after a timeout
+        const kvTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("Key-value store get operation timed out after 30 seconds"));
+            }, 30000); // 30 seconds timeout
+        });
+
+        // Race the key-value store operation against the timeout
+        return Promise.race([
+            puter.kv.get(key),
+            kvTimeoutPromise
+        ]) as Promise<string | null | undefined>;
     };
 
     const setKV = async (key: string, value: string) => {
@@ -378,7 +413,19 @@ export const usePuterStore = create<PuterStore>((set, get) => {
             setError("Puter.js not available");
             return;
         }
-        return puter.kv.set(key, value);
+
+        // Create a promise that rejects after a timeout
+        const kvTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("Key-value store set operation timed out after 30 seconds"));
+            }, 30000); // 30 seconds timeout
+        });
+
+        // Race the key-value store operation against the timeout
+        return Promise.race([
+            puter.kv.set(key, value),
+            kvTimeoutPromise
+        ]) as Promise<boolean | undefined>;
     };
 
     const deleteKV = async (key: string) => {
