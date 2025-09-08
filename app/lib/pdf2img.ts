@@ -27,11 +27,37 @@ async function loadPdfJs(): Promise<any> {
 
     isLoading = true;
     try {
+        // First, check if the worker file is accessible
+        const workerSrc = new URL("/pdf.worker.min.mjs", window.location.origin).href;
+        log("Checking if PDF.js worker is accessible at:", workerSrc);
+
+        try {
+            // Try to fetch the worker file to verify it's accessible
+            const response = await fetch(workerSrc, { method: 'HEAD' });
+            if (!response.ok) {
+                console.error(`Worker file not accessible: ${workerSrc}, status: ${response.status}`);
+                throw new Error(`Worker file not accessible: ${response.statusText}`);
+            }
+            log("PDF.js worker file is accessible");
+        } catch (fetchError) {
+            console.error("Error checking worker file accessibility:", fetchError);
+            // We'll continue and let the PDF.js library try to load it anyway
+        }
+
+        // Create a promise that rejects after a timeout
+        const libraryTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("PDF.js library loading timed out after 30 seconds"));
+            }, 30000); // 30 seconds timeout
+        });
+
         // @ts-expect-error - pdfjs-dist/build/pdf.mjs is not a module
-        loadPromise = import("pdfjs-dist/build/pdf.mjs").then((lib) => {
+        loadPromise = Promise.race([
+            import("pdfjs-dist/build/pdf.mjs"),
+            libraryTimeoutPromise
+        ]).then((lib) => {
             try {
                 // Set the worker source to use local file with multiple fallback options
-                const workerSrc = new URL("/pdf.worker.min.mjs", window.location.origin).href;
                 log("Setting PDF.js worker source to:", workerSrc);
                 lib.GlobalWorkerOptions.workerSrc = workerSrc;
                 pdfjsLib = lib;
@@ -110,11 +136,37 @@ export async function convertPdfToImage(
         log("File data read successfully, size:", arrayBuffer.byteLength);
 
         log("Loading PDF document...");
-        const pdf = await lib.getDocument({ data: arrayBuffer }).promise;
+
+        // Create a promise that rejects after a timeout
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("PDF document loading timed out after 60 seconds"));
+            }, 60000); // 60 seconds timeout
+        });
+
+        // Race the document loading against the timeout
+        const pdf = await Promise.race([
+            lib.getDocument({ data: arrayBuffer }).promise,
+            timeoutPromise
+        ]) as any;
+
         log("PDF document loaded successfully, pages:", pdf.numPages);
 
         log("Getting first page...");
-        const page = await pdf.getPage(1);
+
+        // Create a promise that rejects after a timeout
+        const pageTimeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error("PDF page retrieval timed out after 30 seconds"));
+            }, 30000); // 30 seconds timeout
+        });
+
+        // Race the page retrieval against the timeout
+        const page = await Promise.race([
+            pdf.getPage(1),
+            pageTimeoutPromise
+        ]) as any;
+
         log("First page retrieved successfully");
 
         // Reduced scale factor from 4 to 2 for better performance while maintaining readability
@@ -138,7 +190,19 @@ export async function convertPdfToImage(
 
         log("Rendering PDF page to canvas...");
         try {
-            await page.render({ canvasContext: context, viewport }).promise;
+            // Create a promise that rejects after a timeout
+            const renderTimeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error("PDF page rendering timed out after 30 seconds"));
+                }, 30000); // 30 seconds timeout
+            });
+
+            // Race the rendering against the timeout
+            await Promise.race([
+                page.render({ canvasContext: context, viewport }).promise,
+                renderTimeoutPromise
+            ]);
+
             log("PDF page rendered successfully");
         } catch (renderError) {
             console.error("PDF rendering error:", renderError);

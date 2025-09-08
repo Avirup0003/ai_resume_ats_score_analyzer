@@ -52,22 +52,45 @@ const Upload = () => {
             companyName, jobTitle, jobDescription,
             feedback: '',
         }
-        await kv.set(`resume:${uuid}`, JSON.stringify(data));
+        try {
+            await kv.set(`resume:${uuid}`, JSON.stringify(data));
+        } catch (error) {
+            console.error('Error storing data in key-value store:', error);
+            return setStatusText(`Error: Failed to store data. ${error instanceof Error ? error.message : ''}`);
+        }
 
         setStatusText('Analyzing...');
 
-        const feedback = await ai.feedback(
-            uploadedFile.path,
-            prepareInstructions({ jobTitle, jobDescription })
-        )
-        if (!feedback) return setStatusText('Error: Failed to analyze resume');
+        let feedback;
+        try {
+            feedback = await ai.feedback(
+                uploadedFile.path,
+                prepareInstructions({ jobTitle, jobDescription })
+            );
+            if (!feedback) return setStatusText('Error: Failed to analyze resume');
+        } catch (error) {
+            console.error('Error getting AI feedback:', error);
+            return setStatusText(`Error: Failed to analyze resume. ${error instanceof Error ? error.message : ''}`);
+        }
 
-        const feedbackText = typeof feedback.message.content === 'string'
-            ? feedback.message.content
-            : feedback.message.content[0].text;
+        let feedbackText;
+        try {
+            feedbackText = typeof feedback.message.content === 'string'
+                ? feedback.message.content
+                : feedback.message.content[0].text;
 
-        data.feedback = JSON.parse(feedbackText);
-        await kv.set(`resume:${uuid}`, JSON.stringify(data));
+            data.feedback = JSON.parse(feedbackText);
+        } catch (error) {
+            console.error('Error parsing feedback:', error);
+            return setStatusText(`Error: Failed to parse feedback. ${error instanceof Error ? error.message : ''}`);
+        }
+
+        try {
+            await kv.set(`resume:${uuid}`, JSON.stringify(data));
+        } catch (error) {
+            console.error('Error storing feedback in key-value store:', error);
+            return setStatusText(`Error: Failed to store feedback. ${error instanceof Error ? error.message : ''}`);
+        }
         setStatusText('Analysis complete, redirecting...');
         console.log(data);
         navigate(`/resume/${uuid}`);
