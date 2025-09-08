@@ -417,8 +417,8 @@ export const usePuterStore = create<PuterStore>((set, get) => {
         // Create a promise that rejects after a timeout
         const kvTimeoutPromise = new Promise((_, reject) => {
             setTimeout(() => {
-                reject(new Error("Key-value store set operation timed out after 30 seconds"));
-            }, 30000); // 30 seconds timeout
+                reject(new Error("Key-value store set operation timed out after 60 seconds"));
+            }, 60000); // 60 seconds timeout
         });
 
         // Race the key-value store operation against the timeout
